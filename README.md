@@ -5,23 +5,6 @@
 1. _You have Docker installed_
 1. _You have Bintray access_
 1. _You have an environment variable KONG_LICENSE_DATA with a valid license.json loaded_
-1. _You have Kong Studio <https://github.com/Kong/studio/releases/> 0.0.10 (or better) installed_
-1. _You have a Github Person token https://github.com/settings/tokens_
-### Running the Demo
-
-* Start Kong Studio
-
-* * Select `From File` to import an OpenAPI spec
-  * Import the provided `summit-petstore-demo.yaml`
-  * Select the middle icon from the left side (Try API, it looks like a little Erlenmeyer flask)
-    * Where you see `No Environment` select the dropdown and
-    * Activate the `OpenAPI env`
-
-Get excited...you're now ready to demo a direct call from Kong Studio to `petstore.swagger.io`  so choose `GET /store/inventory` and hit `Send`
-
-You should see output in the `Preview` tab on the right that is a bunch of JSON that looks like store inventory.
-
-**Congratulations! You just called a service using Studio. But wait...there's more!** 
 
 - Start Kong
   `> docker-compose up -d`
