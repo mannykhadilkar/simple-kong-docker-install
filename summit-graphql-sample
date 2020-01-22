@@ -1,0 +1,17 @@
+query {
+  insomnia: organization(login: "getinsomnia") {
+    description
+    location
+    repository(name: "insomnia") {
+      description
+    }
+  }
+  
+  kong: organization(login: "kong") {
+    description
+    location
+    repository(name: "se-tools") {
+        description
+    }
+  }
+}
