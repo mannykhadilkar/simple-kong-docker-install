@@ -1,14 +1,63 @@
 version: "3"
 
+volumes: #for keycloak
+  postgres_data:
+      driver: local
+
 services:
+
+ # begin keycloak 
+  postgres-keycloak:
+    image: postgres
+    container_name: postgres-keycloak
+    ports:
+      - 5434:5434
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+  
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres-keycloak
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_SCHEMA: public
+      DB_PASSWORD: password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
+      #JDBC_PARAMS: "ssl=true"
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres-keycloak
+# end keycloak configuration
+
+# begin  Kong configuration
+  # postgres:
+  #   image: postgres
+  #   restart: always
+  #   container_name: postgres
+  #   environment:
+  #     - POSTGRES_USER=kong
+  #     - POSTGRES_DB=kong
 
   postgres:
     image: postgres
     restart: always
     container_name: postgres
+    ports:
+      - 5432:5432
     environment:
-      - POSTGRES_USER=kong
-      - POSTGRES_DB=kong
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_HOST_AUTH_METHOD: trust
 
   kong-ent:
     image: kong-docker-kong-enterprise-edition-internal-preview-docker.bintray.io/kong-enterprise-edition:1.3-alpine
