@@ -6,11 +6,15 @@
 1. _You have Bintray access_
 1. _You have an environment variable KONG_LICENSE_DATA with a valid license.json loaded_
 
-- Start Kong
-  `> docker-compose up -d`
+# Start Kong and other components in the environment
+  - Verify that the settings in the docker-compose file are correct. Namely the `KONG_ADMIN_GUI_URL` and ` KONG_PORTAL_GUI_HOST` environment variables should specify the hostname you will enter in your browser to access the system running the docker environment. 
+  - Verify that you have logged into bintray by using `docker login` and entering bintray credentials. 
+  
+  - Once those items are complete run the following file. 
+  `> docker-compose -f docker-compose.yaml up -d`
 
-- Configure Keycloak
-  1. Login to keycloak http://<keycloakhostname>:8080 using the credentials specified in the docker-compose file.
+# Configure Keycloak
+  1. Login to keycloak http://<keycloakhostname>:8080 using the credentials specified in the docker-compose file (admin/admin)
   2. Create a new realm called "kong"
   3. Click on "Clients" and create a new client that represents your front-end application. This client id will be used in OAuth 2.0 grants implemented by the user authentication proceess. 
   3. Select "confidential" for access type and enable Service Accounts (this allows us to implement the client credentials grant). 
@@ -22,94 +26,39 @@
  
  `curl -X POST http://<keycloak-hostname>:<port>/auth/realms/kong/protocol/openid-connect/token -d 'grant_type=client_credentials&client_id=<client-id-from-keycloak>&client_secret=<client-secret-from-keycloak'`
   
-- to Demonstrate Scopes, in Keycloak setup scope  -- left off here.  
+- To Demonstrate Scopes, in Keycloak setup a Client Scope in the "kong" realm. You can call it something like "custom" to signify that it can be a custom scope for your client. 
+- Then go back to the "clients" section in keycloak and add the custom scope to one of your clients that you created above. 
+- We will use the openid plugin to demonstrate that we can introspect a token issues from keycloak and grant access based on the scope. 
+
+
+# Configure Kong for OIDC 
+
+  1. Run `./createOidcplugin.sh` (This will add a service, expose that service on a route, and add an openid policy to that route.
+  2. You can view that this was setup by going to your Kong environment http://<docker-hostname>:8002 and view the service, route, and associated plugin. 
+
+# Test OIDC plugin
+  1. Use your favorite REST client to send a request to Keycloak to obtain a token for one of your clients created in keycloak. The curl command option is below:
+  
+  `curl --request POST \
+  --url http://<keycloak-hostname>:8080/auth/realms/kong/protocol/openid-connect/token \
+  --header 'content-type: application/x-www-form-urlencoded' \
+  --data grant_type=client_credentials \
+  --data client_id=<client-id> \
+  --data client_secret=<client-secret>`
+  
+  2. Copy the access token sent back by keycloak and send that access token as a Bearer Token to the Kong route as an application would. Example:
+  
+  curl --request GET \
+  --url http://<kong-host>:8000/oidc-authorization \
+  --header 'authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI2T1FUaWJjdUE2Z2NFUnZMaU84emNldUI1eDBHbm9FbWthaExST1NTblhJIn0.eyJleHAiOjE1ODcwMDIzMDgsImlhdCI6MTU4NzAwMjAwOCwianRpIjoiNDA4MjE5ODQtZWNhOC00ZjVlLTg3ODUtYTA3YWJmOWQwZTRhIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrOjgwODAvYXV0aC9yZWFsbXMva29uZyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI1NzUzZGQ5Yy01NTQzLTRmMDctYWU3NC1jOGMyODQ3OWEyNWYiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJjbGllbnQyIiwic2Vzc2lvbl9zdGF0ZSI6IjI0N2NkNGRjLTk0YjItNDY0Zi1iNDNjLWIxYjlmMmY5YjI2ZSIsImFjciI6IjEiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsImNsaWVudElkIjoiY2xpZW50MiIsImNsaWVudEhvc3QiOiIxOTIuMTY4Ljg2LjIwIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzZXJ2aWNlLWFjY291bnQtY2xpZW50MiIsImNsaWVudEFkZHJlc3MiOiIxOTIuMTY4Ljg2LjIwIn0.QjWrnwCka7jlOKmalCkLZkfTkyki9iSzSDbWFBX8LNM4NvkkzMiVX9P0UASqH152X4QZzlqjaHrYsmYVWRxADGjE_NTjEd7N8Smy_c8-OPRlF7ewiDXNO6gEduTVR9wWnEjjCOXGeIcXkX0yoJzRFoTacggD-2x2LXM7KPd5exvPjwntI01I6NihKgpXVozQAFcLUO1BI9Th5EHdkLLdY30SUP77-4Qc4BX2nyL9DbzAyZ7t9RPKPYQA6KpHAguDwWC9C-mrvD8NUaTKTm9tJUqsJiIrm4q-WAkgkAfmakh3FB27QgHqXUEnql6jFWr6NRB-2HSFdSfZHvzdh_v5eg' \
+  --header 'content-type: application/x-www-form-urlencoded' 
+  
+  3. Since we specified that the client must have the "custom" scope, Kong will only authorize the client that sends the "custom" claim in the token. NOTE: You may have to clear the cookie cache in your REST client to ensure Kong does not allow your authorized cookie to go through from the previous request. This can also be disabled but is often a feature customers like so that Kong is not introspecting every request. 
+  
   
 
-We now we need to create an **Environment** for our Kong Proxy:
+## That concludes this brief demo of Kong and OIDC. 
 
-* Back in the Try API tool, select the `OpenAPI env` dropdown and choose `Manage Environments`
+##### To cleanup: `> docker-compose down --remove-orphans` 
 
-* To the existing Sub Environment definition for `OpenAPI env` add `"id": 1` and then copy the full JSON
-
-* Now add a new Sub Environment, and title it (double-click the New Environment string to edit) **Kong Proxy**
-
-* Paste in your previously copied JSON, then edit it to look exactly like this:
-
-  ```json
-  {
-    "base_path": "/v2",
-    "host": "localhost:8000",
-    "scheme": "http",
-    "id":1
-  }
-  ```
-
-We're now ready to test the Studio's integration with the Kong Proxy.
-
-* Start by making sure you've activated the **Kong Proxy** environment from the dropdown
-* Select the `GET /store/inventory` again and while you should see the exact same preview data, note that the `Header` tab (right hand side) has some interesting new entries, namely `X-Kong-Upstream-Latency, X-Kong-Proxy-Latency, and Via` (technically transfer encoding is also there, but it's not pertinent for now)
-
-*NOTE: if you don't see those. headers, you might not have changed petstore.swagger.io -> localhost:8000*
-
-
-
-**Congratulations again! You have now successfully proxied a call through Studio's integration with Kong's Proxy...BUT WAIT...there's more!!!**
-
-You're now really ready to show the power of Kong...let's add a couple plugins. We'll be making them Global in scope for simplicity, but in real-world scenarios, you'll usually apply them to specific Services or Routes.
-
-1. In your Kong Manager (http://localhost:8002), open the default workspace and select `Plugins`
-2. Add a new Rate Limiting Plugin, setup a limit of 3 per minute and go back to Studio.
-
-Exercise an endpoint again, let's say `GET /pet/{id}` and notice in the headers the presence of `X-RateLimit-Limit-minute` and `X-RateLimit-Remaining-minute` headers. Hit send a few more times and you'll receive a `429` indicating you've reached your limit (_keep this in mind at the bar tonight_).
-
-Let's add one more plugin, an important one for any API...Authentication:
-
-1. Back in the Manager, add an instance of a Key Authentication Plugin
-2. From the Consumers menu, add a new one (auth credentials are associated with them)
-3. With your new Consumer, select `View` and add a Credential to your new Consumer under its tab, and there you'll see the ability to create a new Key Auth Credential. Do so.
-4. In Studio, you can now run a call again, but without a Key, you'll see a `401 Unauthorized`
-5. In the `Query` tab in the middle pane, add `name` `apikey` and for it's `value` use the `key` from your consumer's Key Authentication Credential
-6. Re-send the same request and you should see a `200 OK` with the expected values
-
-Next we will proxy Graphql queries to Kong from Studio! For this demo, we will use Github's Graphql API as the backend service:
-
-1. In Manager, click `Services` then click `New Service`.  Enter a service name `graphql` and in the `Enter the URL` field enter `https://api.github.com/graphql`
-2. Next, select `New Route`.  In the `Enter a Name` field, enter `graphql`, click `+Add Path` and in the field enter `/graphql`.
-3. In Studio, click the `+` button next to Filter text box to create a `New Request`.
-4. In the request enter name `/graphql`, click the dropdown to select `Post` and click the `No Body` dropdown to select `GraphQL Query`
-5. Enter the POST URL as `localhost:8000/graphql`
-6. Paste the following query into the Body:
-```
-query {
-  insomnia: organization(login: "getinsomnia") {
-    description
-    location
-    repository(name: "insomnia") {
-      description
-    }
-  }
-  
-  kong: organization(login: "kong") {
-    description
-    location
-    repository(name: "se-tools") {
-        description
-    }
-  }
- }
- ```
-5. Click the `Auth` tab, choose `Bearer Token` and paste your Github personal token in the token field
-6. In the `Query` tab in the middle pane, add `name` `apikey` and for it's `value` use the `key` from your consumer's Key Authentication Credential
-7. Click `Send` and a `200 OK` with the results of the GraphQL query which in this example returns information about Kong's and Insomnia's Github repos.
-
-
-## That concludes this brief demo of Kong and Kong Studio
-
-##### To cleanup: `> docker-compose down` and in Studio's _Summit Demo_ menu, `Delete app data`
-
-#### What you've learned/shown:
-
-1. How to load an OpenAPI spec from Studio into Kong
-2. How to setup an environment in Studio to proxy through Kong
-3. How to augment service behavior by applying different Plugins to the Kong Proxy using the Kong Manager
 
