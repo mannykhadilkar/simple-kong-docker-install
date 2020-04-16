@@ -9,8 +9,21 @@
 - Start Kong
   `> docker-compose up -d`
 
-- Back in Studio, in the upper lefthand corner, select the dropdown `Swagger Petstore 1.0.0` and choose `Deploy to Kong`
-- You'll be dropped into the third tool, (Monitor Instance, looks like a little speedometer) and should see the output of Kong's Admin API /services endpoint
+- Configure Keycloak
+  1. Login to keycloak http://<keycloakhostname>:8080 using the credentials specified in the docker-compose file.
+  2. Create a new realm called "kong"
+  3. Click on "Clients" and create a new client that represents your front-end application. This client id will be used in OAuth 2.0 grants implemented by the user authentication proceess. 
+  3. Select "confidential" for access type and enable Service Accounts (this allows us to implement the client credentials grant). 
+  4. Make sure there is a valid redirect URI as that will be required if we setup Authorization Code flow. 
+  
+  5. Repeat the steps above for any other clients that you would like to authenticate/authorize using Kong. 
+ 
+ - Validate Keycloak by using a client credentials grant from your command line:
+ 
+ `curl -X POST http://<keycloak-hostname>:<port>/auth/realms/kong/protocol/openid-connect/token -d 'grant_type=client_credentials&client_id=<client-id-from-keycloak>&client_secret=<client-secret-from-keycloak'`
+  
+- to Demonstrate Scopes, in Keycloak setup scope  -- left off here.  
+  
 
 We now we need to create an **Environment** for our Kong Proxy:
 
