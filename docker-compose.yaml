@@ -61,7 +61,8 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
 
   kong-ent:
-    image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:1.3.0.2-alpine
+    #image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:1.3.0.2-alpine
+    image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:1.5.0.4-alpine
     container_name: kong-ent
     depends_on:
       - postgres
@@ -83,8 +84,13 @@ services:
 #      - KONG_ADMIN_GUI_AUTH=openid-connect
 #      - KONG_ADMIN_GUI_AUTH_CONF=${KONG_ADMIN_GUI_AUTH_CONF}
 #      - KONG_ADMIN_GUI_SESSION_CONF={"secret":"secret","storage":"kong","cookie_secure":false}
+      #- KONG_AUDIT_LOG=on
+      #- KONG_LOG_LEVEL=debug
       - KONG_AUDIT_LOG=on
-      - KONG_LOG_LEVEL=debug
+      - KONG_LOG_LEVEL=notice
+      - KONG_TRACING=on
+      - KONG_TRACING_DEBUG_HEADER=tracer
+      - KONG_TRACING_WRITE_ENDPOINT=/tmp/kong_tracing.log
       - KONG_PORTAL_GUI_HOST=localhost:8003
       - KONG_PORTAL_GUI_PROTOCOL=http
       - KONG_PORTAL=on
@@ -120,7 +126,7 @@ services:
       - KONG_SMTP_ADMIN_EMAILS=noreply@konghq.com
 
   kong-init:
-    image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:1.3.0.2-alpine
+    image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:1.5.0.4-alpine
     container_name: kong-init
     depends_on:
       - postgres

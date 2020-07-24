@@ -1,0 +1,64 @@
+_format_version: "1.1"
+services:
+  - name: Swagger_Petstore
+    url: http://mockbin.org/request
+    plugins: []
+    routes:
+      - tags:
+          - OAS3_import
+          - OAS3file_summit-petstore-demo.yaml
+        name: Swagger_Petstore-path-get
+        methods:
+          - GET
+        paths:
+          - /store/inventory
+        strip_path: false
+        plugins:
+          - name: rate-limiting-advanced
+            config:
+              limit:
+                - 3
+              window_size:
+                - 10
+              sync_rate: -1
+              strategy: cluster
+              window_type: sliding
+              namespace: demo
+      - tags:
+          - OAS3_import
+          - OAS3file_summit-petstore-demo.yaml
+        name: Swagger_Petstore-path_1-post
+        methods:
+          - POST
+        paths:
+          - /store/inventory
+        strip_path: false
+      - tags:
+          - OAS3_import
+          - OAS3file_summit-petstore-demo.yaml
+        name: Swagger_Petstore-path_2-get
+        methods:
+          - GET
+        paths:
+          - /pet/(?<id>\S+)$
+        strip_path: false
+      - tags:
+          - OAS3_import
+          - OAS3file_summit-petstore-demo.yaml
+        name: Swagger_Petstore-path_3-delete
+        methods:
+          - DELETE
+        paths:
+          - /pet/(?<id>\S+)$
+        strip_path: false
+    tags:
+      - OAS3_import
+      - OAS3file_summit-petstore-demo.yaml
+upstreams:
+  - name: Swagger_Petstore
+    targets:
+      - target: mockbin.org:80
+    tags:
+      - OAS3_import
+      - OAS3file_summit-petstore-demo.yaml
+

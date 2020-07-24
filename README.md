@@ -13,6 +13,28 @@
   - Once those items are complete run the following file. 
   `> docker-compose -f docker-compose.yaml up -d`
 
+# Configure Kong with an OAS Spec
+
+In order to do this, you will need Insomnia Inso CLI and decK. 
+Insomnia Docs here: <https://support.insomnia.rest/collection/105-inso-cli>
+decK Installation and docs here: <https://docs.konghq.com/deck/installation/>
+
+Basic instructions:
+
+1. Install insomnia-inso
+`sudo npm install insomnia-inso`
+
+2. Copy the node_modules to /usr/local/share and then create a sym link at /usr/local/bin to point to the inso binary like:
+`sudo ln -s /usr/local/share/node_modules/insomnia-inso/bin/inso .`
+
+3. In the working directory, create a sample OAS 3.0 spec. Use inso cli to generate the Kong declarative configuration. 
+`inso generate config summit-petstore-demo.yaml --type declarative > kong.yaml`
+
+4. Then sync with Kong environment using  
+`deck sync kong.yaml`
+
+5. You can now go to Kong to verify the service definitions are created. 
+
 # Configure Keycloak
   1. Login to keycloak http://<keycloakhostname>:8080 using the credentials specified in the docker-compose file (admin/admin)
   2. Create a new realm called "kong"
@@ -55,7 +77,42 @@
   
   3. Since we specified that the client must have the "custom" scope, Kong will only authorize the client that sends the "custom" claim in the token. NOTE: You may have to clear the cookie cache in your REST client to ensure Kong does not allow your authorized cookie to go through from the previous request. This can also be disabled but is often a feature customers like so that Kong is not introspecting every request. 
   
+# Kong Logging configuration
+
+To experiment with Kong log settings, you can use the docker-compose.yaml file to provide environment variables to change the Kong configuration when the container starts. To try different options,  follow the steps below. 
+1. Stop Kong:
+```bash docker-compose -f docker-compose.yaml down --remove-orphans```
+
+    Modify the below environment variables appropriately:
+    - KONG_AUDIT_LOG=on
+    - KONG_LOG_LEVEL=notice
+    - KONG_TRACING=on
+    - KONG_TRACING_DEBUG_HEADER=tracer
+    - KONG_TRACING_WRITE_ENDPOINT=/tmp/kong_tracing.log
+2. Start Kong:
+```bash docker-compose -f docker-compose.yaml up -d```
+
+    Run the existing script to configure Kong test objects (or use inso cli described above to push over a API spec):
+```bash ./createServices.sh```
+
+3. Send request to one of the routes Kong is exposing using a REST client like Insomnia Designer. 
   
+    For example:
+    curl --request GET \
+      --url http://localhost:8000/demo \
+      --header 'tracer: none'
+
+
+  The header ‘tracer’ tells Kong to generate trace logs. Additionally you can see the Kong operational logs by looking at the docker container:
+
+  To View Logs: `docker logs kong-ent -f `
+
+  To View trace logs: `docker exec -it kong-ent sh`
+
+  Then look at /tmp/kong_tracing.log
+
+  To try different logging settings you can start on step 1 again above and in step 2 modify the logging settings as needed.
+
 
 ## That concludes this brief demo of Kong and OIDC. 
 

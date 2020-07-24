@@ -17,3 +17,7 @@ config.issuer=http://keycloak:8080/auth/realms/kong \
 config.cache_introspection=false \
 config.cache_ttl=10 \
 config.scopes_required=custom
+
+# For Patching:
+# PLUGIN_ID=`http :8001/routes/oidc-route/plugins/ | jq '.data[0] .id' | sed s/\"//g`
+# http patch :8001/plugins/$PLUGIN_ID config.scopes_required=email

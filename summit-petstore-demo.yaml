@@ -12,7 +12,7 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: http://petstore.swagger.io/v2
+  - url: http://mockbin.org/request
 paths:
   /store/inventory:
     get:
@@ -39,6 +39,17 @@ paths:
           schema:
             type: integer
             format: int32
+      x-kong-plugin-rate-limiting-advanced:
+        enabled: true
+        config:
+          limit:
+          - 3
+          window_size:
+          - 10
+          sync_rate: -1
+          strategy: cluster
+          window_type: sliding
+          namespace: demo 
       responses:
         '200':
           description: pet response
